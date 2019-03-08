@@ -1,0 +1,13 @@
+dash-flow-example==0.0.5
+dash-dangerously-set-inner-html
+percy
+selenium
+mock
+tox
+tox-pyenv
+six
+plotly==3.6.1
+requests[security]
+flake8
+pylint==2.2.2
+astroid==2.1.0

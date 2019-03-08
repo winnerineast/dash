@@ -207,30 +207,30 @@
       "required": false,
       "description": ""
     },
-    "id": {
+    "data-*": {
       "type": {
         "name": "string"
       },
       "required": false,
       "description": ""
     },
-    "dashEvents": {
+    "aria-*": {
       "type": {
-        "name": "enum",
-        "value": [
-          {
-            "value": "'restyle'",
-            "computed": false
-          },
-          {
-            "value": "'relayout'",
-            "computed": false
-          },
-          {
-            "value": "'click'",
-            "computed": false
-          }
-        ]
+        "name": "string"
+      },
+      "required": false,
+      "description": ""
+    },
+    "in": {
+      "type": {
+        "name": "string"
+      },
+      "required": false,
+      "description": ""
+    },
+    "id": {
+      "type": {
+        "name": "string"
       },
       "required": false,
       "description": ""
