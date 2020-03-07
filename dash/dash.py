@@ -36,6 +36,8 @@ from ._utils import patch_collections_abc as _patch_collections_abc
 from . import _watch
 from ._utils import get_asset_path as _get_asset_path
 from ._utils import create_callback_id as _create_callback_id
+from ._utils import get_relative_path as _get_relative_path
+from ._utils import strip_relative_path as _strip_relative_path
 from ._configs import get_combined_config, pathname_configs
 from .version import __version__
 
@@ -219,7 +221,7 @@ class Dash(object):
         requests_pathname_prefix=None,
         routes_pathname_prefix=None,
         serve_locally=True,
-        compress=True,
+        compress=None,
         meta_tags=None,
         index_string=_default_index,
         external_scripts=None,
@@ -274,7 +276,9 @@ class Dash(object):
             routes_pathname_prefix=routes_prefix,
             requests_pathname_prefix=requests_prefix,
             serve_locally=serve_locally,
-            compress=compress,
+            compress=get_combined_config(
+                "compress", compress, True
+            ),
             meta_tags=meta_tags or [],
             external_scripts=external_scripts or [],
             external_stylesheets=external_stylesheets or [],
@@ -1357,7 +1361,7 @@ class Dash(object):
                     has_update = False
                     for i, o in enumerate(output):
                         val = output_value[i]
-                        if val is not no_update:
+                        if not isinstance(val, _NoUpdate):
                             has_update = True
                             o_id, o_prop = o.component_id, o.component_property
                             component_ids[o_id][o_prop] = val
@@ -1367,7 +1371,7 @@ class Dash(object):
 
                     response = {"response": component_ids, "multi": True}
                 else:
-                    if output_value is no_update:
+                    if isinstance(output_value, _NoUpdate):
                         raise exceptions.PreventUpdate
 
                     response = {
@@ -1564,6 +1568,102 @@ class Dash(object):
         )
 
         return asset
+
+    def get_relative_path(self, path):
+        """
+        Return a path with `requests_pathname_prefix` prefixed before it.
+        Use this function when specifying local URL paths that will work
+        in environments regardless of what `requests_pathname_prefix` is.
+        In some deployment environments, like Dash Enterprise,
+        `requests_pathname_prefix` is set to the application name,
+        e.g. `my-dash-app`.
+        When working locally, `requests_pathname_prefix` might be unset and
+        so a relative URL like `/page-2` can just be `/page-2`.
+        However, when the app is deployed to a URL like `/my-dash-app`, then
+        `app.get_relative_path('/page-2')` will return `/my-dash-app/page-2`.
+        This can be used as an alternative to `get_asset_url` as well with
+        `app.get_relative_path('/assets/logo.png')`
+
+        Use this function with `app.strip_relative_path` in callbacks that
+        deal with `dcc.Location` `pathname` routing.
+        That is, your usage may look like:
+        ```
+        app.layout = html.Div([
+            dcc.Location(id='url'),
+            html.Div(id='content')
+        ])
+        @app.callback(Output('content', 'children'), [Input('url', 'pathname')])
+        def display_content(path):
+            page_name = app.strip_relative_path(path)
+            if not page_name:  # None or ''
+                return html.Div([
+                    dcc.Link(href=app.get_relative_path('/page-1')),
+                    dcc.Link(href=app.get_relative_path('/page-2')),
+                ])
+            elif page_name == 'page-1':
+                return chapters.page_1
+            if page_name == "page-2":
+                return chapters.page_2
+        ```
+        """
+        asset = _get_relative_path(
+            self.config.requests_pathname_prefix,
+            path,
+        )
+
+        return asset
+
+    def strip_relative_path(self, path):
+        """
+        Return a path with `requests_pathname_prefix` and leading and trailing
+        slashes stripped from it. Also, if None is passed in, None is returned.
+        Use this function with `get_relative_path` in callbacks that deal
+        with `dcc.Location` `pathname` routing.
+        That is, your usage may look like:
+        ```
+        app.layout = html.Div([
+            dcc.Location(id='url'),
+            html.Div(id='content')
+        ])
+        @app.callback(Output('content', 'children'), [Input('url', 'pathname')])
+        def display_content(path):
+            page_name = app.strip_relative_path(path)
+            if not page_name:  # None or ''
+                return html.Div([
+                    dcc.Link(href=app.get_relative_path('/page-1')),
+                    dcc.Link(href=app.get_relative_path('/page-2')),
+                ])
+            elif page_name == 'page-1':
+                return chapters.page_1
+            if page_name == "page-2":
+                return chapters.page_2
+        ```
+        Note that `chapters.page_1` will be served if the user visits `/page-1`
+        _or_ `/page-1/` since `strip_relative_path` removes the trailing slash.
+
+        Also note that `strip_relative_path` is compatible with
+        `get_relative_path` in environments where `requests_pathname_prefix` set.
+        In some deployment environments, like Dash Enterprise,
+        `requests_pathname_prefix` is set to the application name, e.g. `my-dash-app`.
+        When working locally, `requests_pathname_prefix` might be unset and
+        so a relative URL like `/page-2` can just be `/page-2`.
+        However, when the app is deployed to a URL like `/my-dash-app`, then
+        `app.get_relative_path('/page-2')` will return `/my-dash-app/page-2`
+
+        The `pathname` property of `dcc.Location` will return '`/my-dash-app/page-2`'
+        to the callback.
+        In this case, `app.strip_relative_path('/my-dash-app/page-2')`
+        will return `'page-2'`
+
+        For nested URLs, slashes are still included:
+        `app.strip_relative_path('/page-1/sub-page-1/')` will return
+        `page-1/sub-page-1`
+        ```
+        """
+        return _strip_relative_path(
+            self.config.requests_pathname_prefix,
+            path,
+        )
 
     def _setup_dev_tools(self, **kwargs):
         debug = kwargs.get("debug", False)

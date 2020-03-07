@@ -3,8 +3,9 @@
  *
  * When users input new prop values, they can be stored and reapplied later,
  * when the component is recreated (changing `Tab` for example) or when the
- * page is reloaded (depending on `persistence_type`) Storage is tied to
- * component ID and will not on with components without an ID.
+ * page is reloaded (depending on `persistence_type`). Storage is tied to
+ * component ID, and the prop values will not be stored with components
+ * without an ID.
  *
  * Renderer handles the mechanics, but components must define a few props:
  *
@@ -66,7 +67,6 @@ import {
     type,
 } from 'ramda';
 import {createAction} from 'redux-actions';
-import uniqid from 'uniqid';
 
 import Registry from './registry';
 
@@ -81,7 +81,6 @@ function err(e) {
     /* eslint-disable no-console */
 
     return createAction('ON_ERROR')({
-        myUID: uniqid(),
         myID: storePrefix,
         type: 'frontEnd',
         error,

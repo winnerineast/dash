@@ -30,13 +30,13 @@ from selenium.webdriver.common.by import By
 
 def findSyncPlotlyJs(scripts):
     for script in scripts:
-        if "dash_core_components/plotly-" in script.get_attribute('src'):
+        if "dash_core_components/plotly" in script.get_attribute('src'):
             return script
 
 
 def findAsyncPlotlyJs(scripts):
     for script in scripts:
-        if "dash_core_components/async~plotlyjs" in script.get_attribute(
+        if "dash_core_components/async-plotlyjs" in script.get_attribute(
             'src'
         ):
             return script
